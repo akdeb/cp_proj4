@@ -1,0 +1,11 @@
+function weight = under_over_merge(image)
+    sz = size(image);
+    N = sz(1);
+    weight = zeros(N);
+    for i=1:N
+        for j=1:N
+            z = (image(i,j,1) + image(i,j,2) + image(i,j,3))/3;
+            weight = double(128-abs(128-z));
+        end
+    end
+end
