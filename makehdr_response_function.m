@@ -4,10 +4,27 @@ function makehdr_response_function(ldrs,exposures)
     ldrs = ldrs(:,:,:,sortexp); %Sort exposures from dark to light
     
     w = @(z)double(128-abs(128-z));
-    lambda = 1;
+    lambda = 100;
+    exposures = log(exposures);
     
     rows = randperm(size(ldrs(:,:,:,1),1), 100);
     cols = randperm(size(ldrs(:,:,:,1),2), 100);
+    
+    Zr = zeros(size(ldrs(:,:,:,1),1)*size(ldrs(:,:,:,1),2), 5);
+    Zg = zeros(size(ldrs(:,:,:,1),1)*size(ldrs(:,:,:,1),2), 5);
+    Zb = zeros(size(ldrs(:,:,:,1),1)*size(ldrs(:,:,:,1),2), 5);
+    
+    for k = 1:1:5
+        p = 1;
+        for i=1:1:size(ldrs(:,:,:,1),1)
+            for j=1:1:size(ldrs(:,:,:,1),2)
+                Zr(p,k) = ldrs(j,i,1,k);
+                Zg(p,k) = ldrs(j,i,2,k);
+                Zb(p,k) = ldrs(j,i,3,k);
+                p=p+1;
+            end
+        end
+    end
     
     Z_r = zeros(100,5);
     Z_g = zeros(100,5);
@@ -25,24 +42,30 @@ function makehdr_response_function(ldrs,exposures)
     [g_g,IE] = gsolve(Z_g, exposures, lambda, w);
     [g_b,IE] = gsolve(Z_b, exposures, lambda, w);
     
-    for i=1:1:5
-        denom_r = 0;
-        denom_g = 0;
-        denom_b = 0;
-        E = zeros(size(ldrs(:,:,:,1)));
-        for j=1:1:100
-            E(:,:,1,i) = w(Z_r(j,i))*(g_r(j,i) - log(exposures(j)));
-            E(:,:,2,i) = w(Z_g(j,i))*(g_g(j,i) - log(exposures(j)));
-            E(:,:,3,i) = w(Z_b(j,i))*(g_b(j,i) - log(exposures(j)));
-            denom_r = denom_r + Z_r(j,i);
-            denom_g = denom_g + Z_g(j,i);
-            denom_b = denom_b + Z_b(j,i);
-        end
+    hdr_response = zeros(size(ldrs(:,:,:,1)));
+    for i=1:1:5 
+        E_r = sum(Zr(:,i)).*(g_r(Zr(:,i)+1)-exposures(i))./sum(Zr(:,i));
+        E_g = sum(Zg(:,i)).*(g_g(Zg(:,i)+1)-exposures(i))./sum(Zg(:,i));
+        E_b = sum(Zb(:,i)).*(g_b(Zb(:,i)+1)-exposures(i))./sum(Zb(:,i));       
+
+        hdr_response(:,:,1) = hdr_response(:,:,1) + reshape(E_r, [size(ldrs(:,:,:,1),1),size(ldrs(:,:,:,1),2)]);
+        hdr_response(:,:,2) = hdr_response(:,:,2) + reshape(E_g, [size(ldrs(:,:,:,1),1),size(ldrs(:,:,:,1),2)]);
+        hdr_response(:,:,3) = hdr_response(:,:,3) + reshape(E_b, [size(ldrs(:,:,:,1),1),size(ldrs(:,:,:,1),2)]);
     end
-    E_r = exp(sum(w(Z_r).*(g_r - log(exposures)))/sum(w(Z_r)));
     
-    E_r
-    figure(3), plot(1:255, 10.^g_r(1:255))
+    hdr_response(:,:,1) = hdr_response(:,:,1)./5;
+    hdr_response(:,:,2) = hdr_response(:,:,2)./5;
+    hdr_response(:,:,3) = hdr_response(:,:,3)./5;
+    
+    hdrwrite(hdr_response, 'hdr_response.hdr');
+    
+    hdr_response(:,:,1) = (hdr_response(:,:,1) - min(min(hdr_response(:,:,1))))/(max(max(hdr_response(:,:,1))) - min(min(hdr_response(:,:,1))));
+    hdr_response(:,:,2) = (hdr_response(:,:,2) - min(min(hdr_response(:,:,2))))/(max(max(hdr_response(:,:,2))) - min(min(hdr_response(:,:,2))));
+    hdr_response(:,:,3) = (hdr_response(:,:,3) - min(min(hdr_response(:,:,3))))/(max(max(hdr_response(:,:,3))) - min(min(hdr_response(:,:,3))));
+    
+    figure(1), imshow(hdr_response)
+    
+    figure(3), plot(1:255, g_r(1:255))
     figure(4), plot(1:255, g_g(1:255))
     figure(5), plot(1:255, g_b(1:255))
 end
