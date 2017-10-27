@@ -1,4 +1,4 @@
-function makehdr_response_function(ldrs,exposures)
+function hdr_response = makehdr_response_function(ldrs,exposures)
 
     [exposures,sortexp] = sort(reshape(exposures,1,1,1,[]));
     ldrs = ldrs(:,:,:,sortexp); %Sort exposures from dark to light
@@ -64,6 +64,7 @@ function makehdr_response_function(ldrs,exposures)
 %     hdr_response(:,:,3) = (hdr_response(:,:,3) - min(min(hdr_response(:,:,3))))/(max(max(hdr_response(:,:,3))) - min(min(hdr_response(:,:,3))));
     
     figure(1), imshow(tonemap(hdr_response))
+    figure(2), imshow(log(hdr_response))
     
     figure(3), plot(1:255, g_r(1:255))
     figure(4), plot(1:255, g_g(1:255))
