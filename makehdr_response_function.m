@@ -59,11 +59,11 @@ function makehdr_response_function(ldrs,exposures)
     
     hdrwrite(hdr_response, 'hdr_response.hdr');
     
-    hdr_response(:,:,1) = (hdr_response(:,:,1) - min(min(hdr_response(:,:,1))))/(max(max(hdr_response(:,:,1))) - min(min(hdr_response(:,:,1))));
-    hdr_response(:,:,2) = (hdr_response(:,:,2) - min(min(hdr_response(:,:,2))))/(max(max(hdr_response(:,:,2))) - min(min(hdr_response(:,:,2))));
-    hdr_response(:,:,3) = (hdr_response(:,:,3) - min(min(hdr_response(:,:,3))))/(max(max(hdr_response(:,:,3))) - min(min(hdr_response(:,:,3))));
+%     hdr_response(:,:,1) = (hdr_response(:,:,1) - min(min(hdr_response(:,:,1))))/(max(max(hdr_response(:,:,1))) - min(min(hdr_response(:,:,1))));
+%     hdr_response(:,:,2) = (hdr_response(:,:,2) - min(min(hdr_response(:,:,2))))/(max(max(hdr_response(:,:,2))) - min(min(hdr_response(:,:,2))));
+%     hdr_response(:,:,3) = (hdr_response(:,:,3) - min(min(hdr_response(:,:,3))))/(max(max(hdr_response(:,:,3))) - min(min(hdr_response(:,:,3))));
     
-    figure(1), imshow(hdr_response)
+    figure(1), imshow(tonemap(hdr_response))
     
     figure(3), plot(1:255, g_r(1:255))
     figure(4), plot(1:255, g_g(1:255))
