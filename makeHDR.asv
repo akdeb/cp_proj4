@@ -31,11 +31,9 @@ function hdr_over_under = makeHDR(ldrs, exposures)
     hdr_over_under(:,:,2) = (hdr_over_under(:,:,2) - min(min(hdr_over_under(:,:,2))))/(max(max(hdr_over_under(:,:,2))) - min(min(hdr_over_under(:,:,2))));
     hdr_over_under(:,:,3) = (hdr_over_under(:,:,3) - min(min(hdr_over_under(:,:,3))))/(max(max(hdr_over_under(:,:,3))) - min(min(hdr_over_under(:,:,3))));
     
-    % DEBUG test negative image concept
-    hdr_over_under = 1 - hdr_over_under;
+    % test neg
     
     hdrwrite(hdr_over_under, 'hdr-2.hdr');
-    disp(hdr_over_under);
     figure(2), imagesc(hdr_over_under)
     
     %LDR Merging with response function estimation
