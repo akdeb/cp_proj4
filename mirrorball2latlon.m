@@ -4,66 +4,116 @@ function latlon = mirrorball2latlon( mirrorball_hdr )
     assert(mod(h,2)~=0, 'Mirror ball image size must be odd!');
     
     % Viewing vector constant for every pixel
-    V = zeros(h,h,3);
+    N = zeros(h,h,3);
     R = zeros(h,h,3);
+    mid = floor(h/2);
     phitheta = zeros(h,h,3);
-    V(:,:,3) = -1*ones(h);
+    count =0;
     
     % Normal vector for every pixel of mirror ball
-    N = zeros(h,h,3);
-    [N(:,:,1), N(:,:,2)] = meshgrid(-1:2/(h-1):1, -1:2/(h-1):1);
-    A = N(:,:,1).^2 + N(:,:,2).^2;
-    
     for i=1:h
         for j=1:h
-            if A(i,j)>1
+            nx = (j - mid) / mid;
+            ny = (i - mid) / mid;
+            if 1 - nx^2 - ny^2 < 0
+                nx = 0;
+                ny = 0;
+                nz = 0;
                 N(i,j,:) = [0,0,0];
             else
-                N(i,j,3) = sqrt(1-A(i,j));
+                nz = sqrt(1 - nx^2 - ny^2);
+                N(i,j,:) = [nx,ny,nz];
+            end
+            
+            if nx == 0 && ny == 0 && nz == 0
+                R(i,j,:) = [0,0,0];
+            else
+                V = [0; 0; -1];
+                n = [nx,ny,nz];
+                r = V - 2 * n * V * n.';
+                R(i,j,1) = r(1, 1) / norm(r);
+                R(i,j,2) = r(2, 1) / norm(r);
+                R(i,j,3) = r(3, 1) / norm(r);
+                count = count + 1;
             end
         end
     end
-    %figure(1);
-    %imagesc(N);
-    R = double(V) - 2 .* double(sum(V.*N, 3)) .* double(N);
-    %scale it because there might be negative values
+    figure(1), imshow(N)
     Rscale = (R-min(R(:)))/(max(R(:))-min(R(:)));
-    %figure(3);
-    %imagesc(Rscale);
+    for i=1:h
+        for j=1:h
+            nx = (j - mid) / mid;
+            ny = (i - mid) / mid;
+            if 1 - nx^2 - ny^2 < 0
+                Rscale(i,j,:) = [0,0,0];
+            end
+        end
+    end
+    
+    figure(2), imshow(Rscale)
     
     %% calculate phi and theta from the R vector
-    phi = atan2(R(:,:,2),R(:,:,1));
-    theta = asin(R(:,:,3));
-    phitheta(:,:,1) = phi;
+    phi = atan2(R(:,:,1),(-1*R(:,:,3)));
+    theta = acos(-1*R(:,:,2));
+    phitheta(:,:,1) = phi + pi;
     phitheta(:,:,2) = theta;
     phithetascale = (phitheta-min(phitheta(:)))/(max(phitheta(:))-min(phitheta(:)));
-    figure(4);
-    imshow(phithetascale);
+    
+    for i=1:h
+        for j=1:h
+            nx = (j - mid) / mid;
+            ny = (i - mid) / mid;
+            if 1 - nx^2 - ny^2 < 0
+                phitheta(i,j,:) = [0,0,0];
+                phithetascale(i,j,:) = [0,0,0];
+            end
+        end
+    end
+    figure(3), imshow(phithetascale)
     
     %% calculate mesh grid rn
-    [phis, thetas] = meshgrid([pi:pi/360:2*pi 0:pi/360:pi], 0:pi/360:pi);
+    [phis, thetas] = meshgrid(0:pi/360:2*pi, 0:pi/360:pi);
     [mh, mw] = size(phis);
     equir = zeros(mh, mw,3);
     equir(:,:,1) = phis;    
     equir(:,:,2) = thetas;
     equir_scale = (equir-min(equir(:)))/(max(equir(:))-min(equir(:)));
-    
-    % required for aesthetic mesh grid tbh
-    for j=1:mh
-        [equir_scale(:,j+mh,:), equir_scale(:,j,:)] = deal(equir_scale(:,j,:), equir_scale(:,j+mh,:));
-    end
   
-    %figure(5);
-    %imshow(equir_scale);
+    figure(4), imshow(equir_scale)
+    %% plot
     
-    %% plot now
-    %{
-    for i=1:d
-        F = TriScatteredInterp(phi(:), theta(:), mirrorball_hdr(:,:,i));
-        latlon(:,:,i) = F(phis, thetas);
+    X = zeros(count, 1);
+    Y = zeros(count, 1);
+    R = zeros(count, 1);
+    G = zeros(count, 1);
+    B = zeros(count, 1);
+    
+    k = 1;
+    for i = 1:h
+        for j = 1:h
+            if phitheta(i, j, 1) == 0 && phitheta(i, j, 2) == 0
+                continue;
+            end
+            X(k, 1) = phitheta(i, j, 1);
+            Y(k, 1) = phitheta(i, j, 2);
+            R(k, 1) = mirrorball_hdr(i, j, 1);
+            G(k, 1) = mirrorball_hdr(i, j, 2);
+            B(k, 1) = mirrorball_hdr(i, j, 3);
+            k = k + 1;
+        end
     end
-    figure(1);
-    imshow(latlon);
-    %}
-    %Create equirectangular (latitude-longitude) image here
+    
+    Fr = scatteredInterpolant(X, Y, R);
+    Fg = scatteredInterpolant(X, Y, G);
+    Fb = scatteredInterpolant(X, Y, B);
+    
+    Qr = Fr(phis, thetas);
+    Qg = Fg(phis, thetas);
+    Qb = Fb(phis, thetas);
+    
+    Q = cat(3, Qr, Qg, Qb);
+    Q(Q < 0) = 0;
+    latlon = Q;
+    
+    figure(5), imshow(tonemap(latlon))
 end
